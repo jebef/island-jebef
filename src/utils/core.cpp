@@ -6,10 +6,10 @@
 
 // ----------- INIT GLOBAL VARIABLES ----------- // 
 // Screen // 
-const unsigned int g_screen_width = 800;
-const unsigned int g_screen_height = 600;
+const unsigned int g_screen_width = 1200;
+const unsigned int g_screen_height = 900;
 // Camera // 
-glm::vec3 g_camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 g_camera_position = glm::vec3(5.0f, 5.0f, 10.0f);
 Camera g_camera(g_camera_position);
 // Mouse // 
 float g_last_x = g_screen_width / 2.0f;

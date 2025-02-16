@@ -12,8 +12,7 @@
 #include "utils/camera.h"
 #include "utils/stb_image.h"
 #include "utils/model.h"
-
-unsigned int loadTexture(const char *path);
+#include "utils/water_frame_buffers.h"
 
 int main() 
 {
@@ -46,15 +45,17 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
+    //stbi_set_flip_vertically_on_load(true);
 
     // construct shader program
     // Shader core_shader = Shader("src/shaders/core.vert","src/shaders/core.frag");
     Shader mvp_shader = Shader("src/shaders/mvp.vert", "src/shaders/mvp.frag");
-    Shader water_shader = Shader("src/shaders/water-debug.vert", "src/shaders/water-debug.frag");
+    Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water-debug.frag");
+    Shader light_cube_shader = Shader("src/shaders/mvp-debug.vert","src/shaders/light-cube.frag");
 
     // load in model data
     Model palm_tree("src/resources/models/palm_tree/palm-tree.obj");
+    Model island("src/resources/models/island/island.obj");
 
     // water will be represented as a 2D plane 
     float water_vertex_data[] = {
@@ -67,14 +68,58 @@ int main()
         -1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f
     };
 
-    unsigned int VBO, VAO;
-    glGenBuffers(1, &VBO);
-    glGenVertexArrays(1, &VAO);
+    float light_cube_vertex_data[] = {
+        -0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f,  
+         0.5f,  0.5f, -0.5f, 
+         0.5f,  0.5f, -0.5f,  
+        -0.5f,  0.5f, -0.5f,  
+        -0.5f, -0.5f, -0.5f,  
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        -0.5f, -0.5f,  0.5f,  
+         0.5f, -0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f, 
+         0.5f,  0.5f,  0.5f,  
+        -0.5f,  0.5f,  0.5f,  
+        -0.5f, -0.5f,  0.5f,  
+
+        -0.5f,  0.5f,  0.5f,  
+        -0.5f,  0.5f, -0.5f,  
+        -0.5f, -0.5f, -0.5f,  
+        -0.5f, -0.5f, -0.5f,  
+        -0.5f, -0.5f,  0.5f,  
+        -0.5f,  0.5f,  0.5f,  
+
+         0.5f,  0.5f,  0.5f,  
+         0.5f,  0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f, 
+         0.5f, -0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f, 
+
+        -0.5f, -0.5f, -0.5f,  
+         0.5f, -0.5f, -0.5f, 
+         0.5f, -0.5f,  0.5f,  
+         0.5f, -0.5f,  0.5f,  
+        -0.5f, -0.5f,  0.5f,  
+        -0.5f, -0.5f, -0.5f,  
+
+        -0.5f,  0.5f, -0.5f,  
+         0.5f,  0.5f, -0.5f,  
+         0.5f,  0.5f,  0.5f,  
+         0.5f,  0.5f,  0.5f,  
+        -0.5f,  0.5f,  0.5f,  
+        -0.5f,  0.5f, -0.5f
+    };
+
+    unsigned int VBO_water, VAO_water;
+    glGenBuffers(1, &VBO_water);
+    glGenVertexArrays(1, &VAO_water);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_water);
     glBufferData(GL_ARRAY_BUFFER, sizeof(water_vertex_data), water_vertex_data, GL_STATIC_DRAW);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(VAO_water);
 
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
@@ -85,83 +130,20 @@ int main()
     glEnableVertexAttribArray(1);
 
 
+    unsigned int VBO_light, VAO_light;
+    glGenBuffers(1, &VBO_light);
+    glGenVertexArrays(1, &VAO_light);
 
-
-    // float cube_vertex_data[] = {
-    //     // positions          // normals           // texture coords
-    //     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-    //      0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-    //      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-    //      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-    //     -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-    //     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-    //     -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-    //      0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-    //      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-    //      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-    //     -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-    //     -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-    //     -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-    //     -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-    //     -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    //     -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    //     -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    //     -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    //      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-    //      0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-    //      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    //      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    //      0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    //      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    //     -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-    //      0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-    //      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    //      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    //     -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-    //     -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-    //     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-    //      0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-    //      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-    //      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-    //     -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-    //     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
-    // };
-
-    // // configure test cube memory buffers 
-    // unsigned int VAO, VBO;
-    // glGenBuffers(1, &VBO);
-    // glGenVertexArrays(1, &VAO);
-
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertex_data), cube_vertex_data, GL_STATIC_DRAW);
-
-    // glBindVertexArray(VAO);
-    // // position 
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    // glEnableVertexAttribArray(0);
-    // // normal
-    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    // glEnableVertexAttribArray(1);
-    // // texture coordinates
-    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    // glEnableVertexAttribArray(2);
-
-    // // configure light cube memory buffers, don't need another VBO - same vertex data
-    // unsigned int VAO_l;
-    // glGenVertexArrays(1, &VAO_l);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_light); 
+    glBufferData(GL_ARRAY_BUFFER, sizeof(light_cube_vertex_data), light_cube_vertex_data, GL_STATIC_DRAW);
     
-    // // bind buffers
-    // glBindVertexArray(VAO_l);
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO); // necessary?
+    glBindVertexArray(VAO_light);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
-    // // position 
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    // glEnableVertexAttribArray(0);
+    // WATER STUFF
+    WaterFrameBuffers(water_fbos);
+
 
     // ----------- MAIN RENDER LOOP ----------- //
     while (!glfwWindowShouldClose(window))
@@ -175,6 +157,7 @@ int main()
         ProcessInput(window);
 
         // ----------- RENDER  ----------- //
+
         // clear/set background color
         glClearColor(0.2f, 0.0f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -184,7 +167,7 @@ int main()
         // set uniforms for water shader 
 
         glm::mat4 water_model = glm::mat4(1.0f);
-        water_model = glm::scale(water_model, glm::vec3(5.0, 5.0, 5.0));
+        water_model = glm::scale(water_model, glm::vec3(20.0f));
         water_shader.setMat4("model", water_model);
 
         glm::mat4 view = g_camera.GetViewMatrix();
@@ -193,7 +176,7 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
         water_shader.setMat4("projection", projection);
 
-        glBindVertexArray(VAO);
+        glBindVertexArray(VAO_water);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
 
@@ -202,8 +185,10 @@ int main()
         // camera/view property
         mvp_shader.setVec3("camera_pos", g_camera.position_);
         // material properties
-        mvp_shader.setFloat("material.shininess", 32.0f);
+        mvp_shader.setFloat("material.shininess", 16.0f);
         // lighting properties
+        bool dir_only = true;
+        mvp_shader.setBool("dir_only", dir_only);
         // directional light 
         glm::vec3 dl_direction = glm::vec3(0.0f, -1.0f, 0.0f);
         glm::vec3 dl_ambient = glm::vec3(0.1f, 0.1f, 0.1f);
@@ -256,6 +241,7 @@ int main()
 
         // model matrix (local -> world)
         glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f,0.0f,0.0f));
         model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));
         mvp_shader.setMat4("model", model);
 
@@ -274,19 +260,34 @@ int main()
         glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(model)));
         mvp_shader.setMat3("normal", normal);
 
-        // // bind diffuse map
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, diffuse_map);
-        // // bind specular map
-        // glActiveTexture(GL_TEXTURE1);
-        // glBindTexture(GL_TEXTURE_2D, specular_map);
-
-        // // draw model 
-        // glBindVertexArray(VAO);
-        // glDrawArrays(GL_TRIANGLES, 0, 36);
-
         // draw model 
         palm_tree.Draw(mvp_shader);
+
+        glm::mat4 model_island = glm::mat4(1.0f);
+        model_island = glm::scale(model_island, glm::vec3(2.0f));
+        model_island = glm::translate(model_island, glm::vec3(0.0f, -10.0f, 0.0f));
+        mvp_shader.setMat4("model", model_island);
+
+        island.Draw(mvp_shader);
+
+        if (!dir_only) {
+            // draw light sources 
+            light_cube_shader.use();
+            glm::mat4 model_light = glm::mat4(1.0f);
+            model_light = glm::translate(model_light, pl_position);
+            model_light = glm::scale(model_light, glm::vec3(0.25f));
+            light_cube_shader.setMat4("model", model_light);
+            light_cube_shader.setMat4("view", view);
+            light_cube_shader.setMat4("projection", projection);
+            glBindVertexArray(VAO_light);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            model_light = glm::mat4(1.0f);
+            model_light = glm::translate(model_light, sl_position);
+            model_light = glm::scale(model_light, glm::vec3(0.25f));
+            light_cube_shader.setMat4("model", model_light);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // swap frame and output buffers
         glfwSwapBuffers(window);
@@ -299,45 +300,10 @@ int main()
     // glDeleteVertexArrays(1, &VAO_l);
     // glDeleteBuffers(1, &VBO);
 
+    // FREE WATER RESOURCES
+    water_fbos.CleanUp();
+
     // free glfw resources 
     glfwTerminate();
     return 0; 
-}
-
-// GET RID OF THIS  
-unsigned int loadTexture(char const * path)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
 }

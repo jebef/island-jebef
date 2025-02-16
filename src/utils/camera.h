@@ -14,7 +14,7 @@ enum eCameraMovement {
 // Default camera values 
 const float kYaw = -90.0f;
 const float kPitch = 0.0f; 
-const float kSpeed = 2.5f;
+const float kSpeed = 20.0f;
 const float kSensitivity = 0.1f; 
 const float kZoom = 45.0f;
 
