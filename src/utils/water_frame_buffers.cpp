@@ -7,6 +7,9 @@
 #include "core.h"
 #include "water_frame_buffers.h"
 
+#include <iostream>
+
+
 // ----------- PUBLIC ----------- // 
 /*
     Initialize buffers.

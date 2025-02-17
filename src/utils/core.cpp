@@ -6,6 +6,7 @@
 
 // ----------- INIT GLOBAL VARIABLES ----------- // 
 // Screen // 
+GLFWwindow* g_window = nullptr;
 const unsigned int g_screen_width = 1200;
 const unsigned int g_screen_height = 900;
 // Camera // 

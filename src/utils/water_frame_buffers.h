@@ -25,8 +25,8 @@ private:
     const unsigned int kReflectionWidth = 320;
     const unsigned int kReflectionHeight = 180;
 
-    const unsigned int kRefractionWidth = 1280;
-    const unsigned int kRefractionHeight = 720;
+    const unsigned int kRefractionWidth = 320;
+    const unsigned int kRefractionHeight = 180;
 
     unsigned int refl_frame_buffer;
     unsigned int refl_texture;

@@ -10,6 +10,7 @@
 
 // ----------- GLOBAL SETTINGS ----------- // 
 // Screen // 
+extern GLFWwindow* g_window;
 extern const unsigned int g_screen_width;
 extern const unsigned int g_screen_height;
 // Camera // 
