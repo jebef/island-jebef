@@ -13,6 +13,8 @@
 extern GLFWwindow* g_window;
 extern const unsigned int g_screen_width;
 extern const unsigned int g_screen_height;
+extern unsigned int g_screen_width_p;
+extern unsigned int g_screen_height_p;
 // Camera // 
 extern glm::vec3 g_camera_position;
 extern Camera g_camera;

@@ -43,7 +43,7 @@ void WaterFrameBuffers::BindRefractionFrameBuffer() {
 
 void WaterFrameBuffers::UnbindCurrentFrameBuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0); // 0 is default frame buffer id 
-    glViewport(0, 0, g_screen_width, g_screen_height);
+    glViewport(0, 0, g_screen_width_p, g_screen_height_p); // YOU WILL REMEMBER THIS BUG (p)
 }
 
 unsigned int WaterFrameBuffers::GetReflectionTexture() {
@@ -78,7 +78,7 @@ void WaterFrameBuffers::InitRefractionFrameBuffer() {
     resolution to width x height. 
 */
 void WaterFrameBuffers::BindFrameBuffer(unsigned int frame_buffer, int width, int height) {
-    glBindTexture(GL_TEXTURE_2D, 0); // ensure no textures are currently bound
+    glBindTexture(GL_TEXTURE_2D, 0); // ensure no textures are currently bound??
     glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer);
     glViewport(0, 0, width, height);
 }
@@ -102,9 +102,9 @@ unsigned int WaterFrameBuffers::CreateTextureAttachment(int width, int height) {
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
     return texture;
 }
