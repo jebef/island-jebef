@@ -28,6 +28,7 @@
 
 void RenderScene(const std::vector<Model> models, Shader shader);
 void RenderSceneToTexture(WaterFrameBuffers water_fbos);
+void RenderWater();
 
 int main() 
 {
@@ -69,7 +70,6 @@ int main()
 
     // construct shader programs
     Shader mvp_shader = Shader("src/shaders/mvp.vert", "src/shaders/mvp.frag");
-    //Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water-debug.frag");
 
     // load in model data
     Model palm_tree("src/resources/models/palm_tree/palm-tree.obj");
@@ -85,17 +85,6 @@ int main()
     island.SetModelMatrix(model);
 
     const std::vector<Model> models = { island, palm_tree };
-
-    // water will be represented as a 2D plane 
-    // float water_vertex_data[] = {
-    //     // positions            // normals
-    //     -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
-    //      1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
-    //      1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
-    //     -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
-    //      1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
-    //     -1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f
-    // };
     
     // ----------- SET SHADER UNIFORMS ----------- // 
     //// TERRAIN
@@ -174,6 +163,7 @@ int main()
 
         // render scene to default frame buffer
         RenderScene(models, mvp_shader);
+        RenderWater();
 
         RenderSceneToTexture(water_fbos);
 
@@ -272,6 +262,49 @@ void RenderSceneToTexture(WaterFrameBuffers water_fbos) {
 
     // render gui
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void RenderWater() {
+    // water will be represented as a 2D plane 
+    float water_vertex_data[] = {
+        // positions            // normals
+        -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
+        -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
+        -1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f
+    };
+
+    unsigned int VAO, VBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glBindVertexArray(VAO);
+    // configure vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(water_vertex_data), water_vertex_data, GL_STATIC_DRAW);
+    // configure vertex array
+    // position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water-debug.frag");
+    // render landscape
+    water_shader.use();
+    // set uniforms for water shader 
+    glm::mat4 water_model = glm::mat4(1.0f);
+    water_model = glm::scale(water_model, glm::vec3(20.0f));
+    water_shader.setMat4("model", water_model);
+
+    glm::mat4 view = g_camera.GetViewMatrix();
+    water_shader.setMat4("view", view);
+
+    glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
+    water_shader.setMat4("projection", projection);
+
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
 }
 
 
