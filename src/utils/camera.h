@@ -51,6 +51,13 @@ public:
 
     void ProcessMouseScroll(float y_offset);
 
+    void InvertPitch();
+
+    void UpdateXPosition(float x);
+    void UpdateYPosition(float y);
+    void UpdateZPosition(float z);
+    void UpdatePosition(glm::vec3 new_position);
+
 private:
     void updateCameraVectors();
 };

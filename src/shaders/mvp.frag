@@ -54,6 +54,8 @@ in vec3 wPos;
 in vec3 wNorm;
 in vec2 wTexCoords;
 
+in float clip_distance;
+
 // UNIFORMS 
 uniform vec3 camera_pos;
 uniform Material material;
@@ -63,21 +65,25 @@ uniform SpotLight spot_light[NR_SPOT_LIGHTS];
 uniform bool dir_only;
 
 void main() {
-    // get camera/view direction 
-    vec3 camera_dir = normalize(camera_pos - wPos);
-    // directional light 
-    vec3 result = CalcDirLight(directional_light, camera_dir);
-    if (!dir_only) {
-        // point lights 
-        for (int i = 0; i < NR_POINT_LIGHTS; i++) {
-            result += CalcPointLight(point_light[i], camera_dir);
+    if (clip_distance < 0.0) {
+        discard;
+    } else {
+        // get camera/view direction 
+        vec3 camera_dir = normalize(camera_pos - wPos);
+        // directional light 
+        vec3 result = CalcDirLight(directional_light, camera_dir);
+        if (!dir_only) {
+            // point lights 
+            for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+                result += CalcPointLight(point_light[i], camera_dir);
+            }
+            // spot lights
+            for (int i = 0; i < NR_SPOT_LIGHTS; i++)
+                result += CalcSpotLight(spot_light[i], camera_dir);
         }
-        // spot lights
-        for (int i = 0; i < NR_SPOT_LIGHTS; i++)
-            result += CalcSpotLight(spot_light[i], camera_dir);
-    }
 
-    FragColor = vec4(result, 1.0f);
+        FragColor = vec4(result, 1.0f);
+    }
 }
 
 vec3 CalcDirLight(DirLight light, vec3 camera_dir) {

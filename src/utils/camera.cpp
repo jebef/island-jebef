@@ -95,6 +95,24 @@ void Camera::ProcessMouseScroll(float y_offset) {
         zoom_ = 45.0f;
 }
 
+// Invert the camera's pitch.
+void Camera::InvertPitch() {
+    pitch_ = -pitch_;
+}
+
+void Camera::UpdateXPosition(float x) {
+    position_.x = x;
+}
+void Camera::UpdateYPosition(float y) {
+    position_.y = y;
+}
+void Camera::UpdateZPosition(float z) {
+    position_.z= z;
+}
+void Camera::UpdatePosition(glm::vec3 new_position) {
+    position_ = new_position;
+}
+
 // Updates the camera's coordinate system via the front, right, and up vectors. 
 void Camera::updateCameraVectors() {
     glm::vec3 new_front;

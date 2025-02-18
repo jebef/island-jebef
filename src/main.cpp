@@ -146,6 +146,7 @@ int main()
 
     //// WATER
     // water will be represented as a 2D plane 
+    // WATER IS DEFINED TO BE AT y = 0.0f
     float water_vertex_data[] = {
         // positions            // normals
         -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
@@ -232,15 +233,30 @@ int main()
         ProcessInput(g_window);
 
         // render scene to reflection buffer
+        // save current camera position 
+        glm::vec3 current_camera_pos = g_camera.position_;
+        // update camera position to capture reflection angles
+        g_camera.UpdateYPosition(g_camera.position_.y - (2 * g_camera.position_.y));
+        g_camera.InvertPitch();
+        // bind reflection frame buffer and render 
         water_fbos.BindReflectionFrameBuffer();
+        // define reflection clip plane and set uniform
+        glm::vec4 refl_clip_plane = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
+        mvp_shader.setVec4("clip_plane", refl_clip_plane);
         RenderScene(models, mvp_shader);
         water_fbos.UnbindCurrentFrameBuffer();
+        // restore camera settings 
+        g_camera.InvertPitch();
+        g_camera.UpdatePosition(current_camera_pos);
+
         // render scene to refraction buffer
         water_fbos.BindRefractionFrameBuffer();
         RenderScene(models, mvp_shader);
         water_fbos.UnbindCurrentFrameBuffer();
-
+        
         // render scene to default frame buffer
+        mvp_shader.setBool("clip", false);
+        mvp_shader.setVec4("clip_plane", refl_clip_plane);
         RenderScene(models, mvp_shader);
         
         // render water 
