@@ -29,7 +29,7 @@
 void RenderScene(const std::vector<Model> models, Shader shader);
 void RenderSceneToTexture(WaterFrameBuffers water_fbos);
 void RenderWater(Shader shader, unsigned int VAO);
-void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id);
+void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id, unsigned int index_offset);
 
 int main() 
 {
@@ -175,14 +175,24 @@ int main()
 
     //// WATER GUI 
     float gui_vertex_data[] = {
+        // reflection gui
         -1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // top left
         -0.5f, 1.0f, 0.0f,  1.0f, 1.0f, // top right
         -0.5f, 0.5f, 0.0f,  1.0f, 0.0f, // bottom right
-        -1.0f, 0.5f, 0.0f,  0.0f, 0.0f // bottom left
+        -1.0f, 0.5f, 0.0f,  0.0f, 0.0f, // bottom left
+        // refraction gui
+         0.5f, -0.5f, 0.0f,  0.0f, 1.0f, // top left
+         1.0f, -0.5f, 0.0f,  1.0f, 1.0f, // top right
+         1.0f, -1.0f, 0.0f,  1.0f, 0.0f, // bottom right
+         0.5f, -1.0f, 0.0f,  0.0f, 0.0f // bottom left
     };
     unsigned int gui_indices[] = {
+        // reflection gui 
         0, 1, 2, // first triangle
-        0, 2, 3  // second triangle
+        0, 2, 3, // second triangle
+        // refraction gui 
+        4, 5, 6, // first triangle
+        4, 6, 7 // second triangle
     };
     // generate buffers
     unsigned int VAO_WGUI, VBO_WGUI, EBO_WGUI;
@@ -221,8 +231,12 @@ int main()
         // handle user input 
         ProcessInput(g_window);
 
-        // render scene to water frame buffers
+        // render scene to reflection buffer
         water_fbos.BindReflectionFrameBuffer();
+        RenderScene(models, mvp_shader);
+        water_fbos.UnbindCurrentFrameBuffer();
+        // render scene to refraction buffer
+        water_fbos.BindRefractionFrameBuffer();
         RenderScene(models, mvp_shader);
         water_fbos.UnbindCurrentFrameBuffer();
 
@@ -233,7 +247,8 @@ int main()
         RenderWater(water_shader, VAO_W);
 
         // render scene to water gui - DEBUG 
-        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture());
+        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
+        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetRefractionTexture(), 6);
 
         // swap frame and output buffers
         glfwSwapBuffers(g_window);
@@ -282,7 +297,7 @@ void RenderScene(const std::vector<Model> models, Shader shader) {
         // normal matrix - translates vec3 normals to world space 
         glm::mat3 normal = glm::mat3(glm::transpose(glm::inverse(model.model_matrix)));
         shader.setMat3("normal", normal);
-
+        // draw 
         model.Draw(shader);
     }
 }
@@ -304,11 +319,11 @@ void RenderWater(Shader shader, unsigned int VAO) {
     glBindVertexArray(0);
 }
 
-void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id) {
+void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id, unsigned int index_offset) {
     glDisable(GL_DEPTH_TEST);
     shader.use();
     glBindTexture(GL_TEXTURE_2D, texture_id);
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(index_offset * sizeof(GLuint)));
     glEnable(GL_DEPTH_TEST);
 }
