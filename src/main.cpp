@@ -28,7 +28,8 @@
 
 void RenderScene(const std::vector<Model> models, Shader shader);
 void RenderSceneToTexture(WaterFrameBuffers water_fbos);
-void RenderWater();
+void RenderWater(Shader shader, unsigned int VAO);
+void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id);
 
 int main() 
 {
@@ -144,7 +145,71 @@ int main()
     mvp_shader.setFloat("spot_light[0].outer_cut_off", sl_outer_cut_off);
 
     //// WATER
+    // water will be represented as a 2D plane 
+    float water_vertex_data[] = {
+        // positions            // normals
+        -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
+        -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
+         1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
+        -1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f
+    };
+    // generate buffers 
+    unsigned int VAO_W, VBO_W;
+    glGenVertexArrays(1, &VAO_W);
+    glGenBuffers(1, &VBO_W);
+    glBindVertexArray(VAO_W);
+    // configure vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_W);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(water_vertex_data), water_vertex_data, GL_STATIC_DRAW);
+    // configure vertex array
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // unbind VAO_W 
+    glBindVertexArray(0);
+    // create water shader program
+    Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water-debug.frag");
+    // init water frame buffers and associated attachments
     WaterFrameBuffers(water_fbos);
+
+    //// WATER GUI 
+    float gui_vertex_data[] = {
+        -1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // top left
+        -0.5f, 1.0f, 0.0f,  1.0f, 1.0f, // top right
+        -0.5f, 0.5f, 0.0f,  1.0f, 0.0f, // bottom right
+        -1.0f, 0.5f, 0.0f,  0.0f, 0.0f // bottom left
+    };
+    unsigned int gui_indices[] = {
+        0, 1, 2, // first triangle
+        0, 2, 3  // second triangle
+    };
+    // generate buffers
+    unsigned int VAO_WGUI, VBO_WGUI, EBO_WGUI;
+    glGenVertexArrays(1, &VAO_WGUI);
+    glGenBuffers(1, &VBO_WGUI);
+    glGenBuffers(1, &EBO_WGUI);
+    glBindVertexArray(VAO_WGUI);
+    // configure vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_WGUI);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(gui_vertex_data), gui_vertex_data, GL_STATIC_DRAW);
+    // configure vertex array
+    // position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // texture coordinates
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    // configure element buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_WGUI);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gui_indices), gui_indices, GL_STATIC_DRAW);
+    // unbind VAO_WGUI
+    glBindVertexArray(0);
+    // create gui shader program 
+    Shader gui_shader = Shader("src/shaders/gui-debug.vert", "src/shaders/gui-debug.frag");
+    gui_shader.use();
+    // set texture sampler uniform
+    gui_shader.setInt("texture_id", 0);
 
     // ----------- MAIN RENDER LOOP ----------- //
     while (!glfwWindowShouldClose(g_window)) {
@@ -163,9 +228,12 @@ int main()
 
         // render scene to default frame buffer
         RenderScene(models, mvp_shader);
-        RenderWater();
+        
+        // render water 
+        RenderWater(water_shader, VAO_W);
 
-        RenderSceneToTexture(water_fbos);
+        // render scene to water gui - DEBUG 
+        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture());
 
         // swap frame and output buffers
         glfwSwapBuffers(g_window);
@@ -219,112 +287,28 @@ void RenderScene(const std::vector<Model> models, Shader shader) {
     }
 }
 
-void RenderSceneToTexture(WaterFrameBuffers water_fbos) {
-    glDisable(GL_DEPTH_TEST);
-
-    Shader gui_shader = Shader("src/shaders/gui-debug.vert", "src/shaders/gui-debug.frag");
-    gui_shader.use();
-    unsigned int texture_id = water_fbos.GetReflectionTexture();
-    gui_shader.setInt("texture_id", 0);
-
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-
-    float gui_vertex_data[] = {
-        -1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // top left
-        -0.5f, 1.0f, 0.0f,  1.0f, 1.0f, // top right
-        -0.5f, 0.5f, 0.0f,  1.0f, 0.0f, // bottom right
-        -1.0f, 0.5f, 0.0f,  0.0f, 0.0f // bottom left
-    };
-
-    unsigned int gui_indices[] = {
-        0, 1, 2, // first triangle
-        0, 2, 3  // second triangle
-    };
-
-    unsigned int VAO, VBO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    glBindVertexArray(VAO);
-    // configure vertex buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(gui_vertex_data), gui_vertex_data, GL_STATIC_DRAW);
-    // configure vertex array
-    // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // texture coordinates
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    // configure element buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gui_indices), gui_indices, GL_STATIC_DRAW);
-
-    // render gui
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-}
-
-void RenderWater() {
-    // water will be represented as a 2D plane 
-    float water_vertex_data[] = {
-        // positions            // normals
-        -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
-         1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
-         1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
-        -1.0f, 0.0f, -1.0f,     0.0f, 1.0f, 0.0f,
-         1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f,
-        -1.0f, 0.0f,  1.0f,     0.0f, 1.0f, 0.0f
-    };
-
-    unsigned int VAO, VBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-    // configure vertex buffer
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(water_vertex_data), water_vertex_data, GL_STATIC_DRAW);
-    // configure vertex array
-    // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water-debug.frag");
-    // render landscape
-    water_shader.use();
-    // set uniforms for water shader 
-    glm::mat4 water_model = glm::mat4(1.0f);
-    water_model = glm::scale(water_model, glm::vec3(20.0f));
-    water_shader.setMat4("model", water_model);
-
+void RenderWater(Shader shader, unsigned int VAO) {
+    // activate water shader 
+    shader.use();
+    // set matrix uniforms for water shader 
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::scale(model, glm::vec3(20.0f));
+    shader.setMat4("model", model);
     glm::mat4 view = g_camera.GetViewMatrix();
-    water_shader.setMat4("view", view);
-
+    shader.setMat4("view", view);
     glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
-    water_shader.setMat4("projection", projection);
-
+    shader.setMat4("projection", projection);
+    // bind water VAO and draw 
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 }
 
-
-
-/* 
-// render landscape
-            water_shader.use();
-            // set uniforms for water shader 
-
-            glm::mat4 water_model = glm::mat4(1.0f);
-            water_model = glm::scale(water_model, glm::vec3(20.0f));
-            water_shader.setMat4("model", water_model);
-
-            glm::mat4 view = g_camera.GetViewMatrix();
-            water_shader.setMat4("view", view);
-
-            glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
-            water_shader.setMat4("projection", projection);
-
-            glBindVertexArray(VAO_water);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glBindVertexArray(0);
-*/
+void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id) {
+    glDisable(GL_DEPTH_TEST);
+    shader.use();
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glEnable(GL_DEPTH_TEST);
+}
