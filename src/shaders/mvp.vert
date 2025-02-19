@@ -9,25 +9,18 @@ uniform mat4 projection;
 uniform mat3 normal;
 
 uniform vec4 clip_plane;
-uniform bool clip;
 
 out vec3 wPos;
 out vec3 wNorm;
 out vec2 wTexCoords;
 
-out float clip_distance;
-
 void main() {
     wPos = vec3(model * vec4(aPos, 1.0f));
     wNorm = normalize(normal * aNorm);
     wTexCoords = aTexCoords;
-    
-    if (clip) {
-        vec4 world_pos = model * vec4(aPos, 1.0f);
-        clip_distance = dot(world_pos, clip_plane);
-    } else {
-        clip_distance = 1;
-    }
+
+    vec4 world_pos = model * vec4(aPos, 1.0f);
+    gl_ClipDistance[0] = dot(world_pos, clip_plane);
     
     gl_Position = projection * view * vec4(wPos, 1.0f);
 }

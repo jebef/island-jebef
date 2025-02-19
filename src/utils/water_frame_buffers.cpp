@@ -90,7 +90,7 @@ unsigned int WaterFrameBuffers::CreateFrameBuffer() {
     unsigned int frame_buffer;
     glGenFramebuffers(1, &frame_buffer);
     glBindFramebuffer(GL_FRAMEBUFFER, frame_buffer);
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0); 
     return frame_buffer;
 }
 
