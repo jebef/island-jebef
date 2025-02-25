@@ -22,13 +22,11 @@
     4. Load models 
     5. Set uniforms 
     6. Render 
-
-
 */
-
 void RenderScene(const std::vector<Model> models, Shader shader);
 void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id,  unsigned int refr_tex_id);
 void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id, unsigned int index_offset);
+void RenderDebugAxes(Shader shader, unsigned int VAO);
 
 int main() 
 {
@@ -143,41 +141,48 @@ int main()
     mvp_shader.setFloat("spot_light[0].inner_cut_off", sl_inner_cut_off);
     mvp_shader.setFloat("spot_light[0].outer_cut_off", sl_outer_cut_off);
 
-    //// WATER
-    // water will be represented as a 2D plane 
-    // WATER IS DEFINED TO BE AT y = 0.0f
-    float water_vertex_data[] = {
-        // Positions           // Normals           // Texture Coords
-        -1.0f,  0.0f, -1.0f,   0.0f, 1.0f, 0.0f,    0.0f, 1.0f,  // Bottom-left
-         1.0f,  0.0f, -1.0f,   0.0f, 1.0f, 0.0f,    1.0f, 1.0f,  // Bottom-right
-         1.0f,  0.0f,  1.0f,   0.0f, 1.0f, 0.0f,    1.0f, 0.0f,  // Top-right
-    
-        -1.0f,  0.0f, -1.0f,   0.0f, 1.0f, 0.0f,    0.0f, 1.0f,  // Bottom-left
-         1.0f,  0.0f,  1.0f,   0.0f, 1.0f, 0.0f,    1.0f, 0.0f,  // Top-right
-        -1.0f,  0.0f,  1.0f,   0.0f, 1.0f, 0.0f,    0.0f, 0.0f   // Top-left
+    // ----------- WATER ----------- //
+    float vd_water[] = {
+        // Positions         // Texture Coordinates
+        -1.0f, 0.0f, -1.0f,  0.0f, 1.0f, // top left
+         1.0f, 0.0f, -1.0f,  1.0f, 1.0f, // top right
+         1.0f, 0.0f,  1.0f,  1.0f, 0.0f, // bottom right
+        -1.0f, 0.0f,  1.0f,  0.0f, 0.0f, // bottom left
     };
-    
-    // generate buffers 
-    unsigned int VAO_W, VBO_W;
+    unsigned int i_water[] = {
+        0, 1, 2, 
+        0, 2, 3
+    };
+    // generate water plane buffers 
+    unsigned int VAO_W, VBO_W, EBO_W;
     glGenVertexArrays(1, &VAO_W);
     glGenBuffers(1, &VBO_W);
+    glGenBuffers(1, &EBO_W);
+    // bind vertex array object 
     glBindVertexArray(VAO_W);
-    // configure vertex buffer
+    // configure vertex buffer data 
     glBindBuffer(GL_ARRAY_BUFFER, VBO_W);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(water_vertex_data), water_vertex_data, GL_STATIC_DRAW);
-    // configure vertex array
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vd_water), vd_water, GL_STATIC_DRAW);
+    // configure element buffer data 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_W);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(i_water), i_water, GL_STATIC_DRAW);
+    // configure vertex array ttribute pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)3);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)6);
-    glEnableVertexAttribArray(2);
-    // unbind VAO_W 
+    // unbind 
     glBindVertexArray(0);
     // create water shader program
-    Shader water_shader = Shader("src/shaders/mvp.vert", "src/shaders/water.frag");
+    Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water.frag");
+    water_shader.use();
+    // set texture sampler uniforms 
     water_shader.setInt("reflection_texture", 0);
     water_shader.setInt("refraction_texture", 1);
+    // set model matrix uniform
+    glm::mat4 model_water = glm::mat4(1.0f);
+    model_water = glm::scale(model_water, glm::vec3(20.0f));
+    water_shader.setMat4("model", model_water);
     // init water frame buffers and associated attachments
     WaterFrameBuffers(water_fbos);
 
@@ -229,6 +234,41 @@ int main()
     // set texture sampler uniform
     gui_shader.setInt("texture_id", 0);
 
+    // ----------- DEBUG AXES ----------- //
+    float vd_axes[] = {
+        // x axis
+        -1.0f,  0.0f,  0.0f, 
+         1.0f,  0.0f,  0.0f, 
+        // y axis 
+         0.0f, -1.0f,  0.0f, 
+         0.0f,  1.0f,  0.0f, 
+         // z axis 
+         0.0f,  0.0f, -1.0f, 
+         0.0f,  0.0f,  1.0f
+    };
+    // generate buffers 
+    unsigned int VAO_AX, VBO_AX;
+    glGenVertexArrays(1, &VAO_AX);
+    glGenBuffers(1, &VBO_AX);
+    // bind vertex array object 
+    glBindVertexArray(VAO_AX);
+    // configure vertex buffer 
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_AX);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vd_axes), vd_axes, GL_STATIC_DRAW);
+    // configure vertex array attribute pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); 
+    glEnableVertexAttribArray(0);
+    // unbind 
+    glBindVertexArray(0);
+    // create debug axes shader program
+    Shader axes_shader("src/shaders/axes.vert", "src/shaders/axes.frag");
+    axes_shader.use();
+    // set static model uniform 
+    glm::mat4 model_axes = glm::mat4(1.0f);
+    model_axes = glm::scale(model_axes, glm::vec3(10.0f));
+    axes_shader.setMat4("model", model_axes);
+
+
     // ----------- MAIN RENDER LOOP ----------- //
     while (!glfwWindowShouldClose(g_window)) {
         // per-frame time logic
@@ -239,48 +279,56 @@ int main()
         // handle user input 
         ProcessInput(g_window);
 
-        // render scene to reflection buffer
-        // save current camera position 
-        glm::vec3 current_camera_pos = g_camera.position_;
-        // update camera position to capture reflection angles
-        g_camera.UpdateYPosition(g_camera.position_.y - (2 * g_camera.position_.y));
-        g_camera.InvertPitch();
-        // bind reflection frame buffer and render 
-        water_fbos.BindReflectionFrameBuffer();
-        // define reflection clip plane and set uniform
-        glm::vec4 refl_clip_plane = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
-        mvp_shader.setVec4("clip_plane", refl_clip_plane);
-
+        // enable clipping 
         glEnable(GL_CLIP_DISTANCE0);
 
+        //// RENDER SCENE TO REFLECTION BUFFER ////
+        // update camera position to capture reflection angles
+        glm::vec3 current_camera_pos = g_camera.position_;
+        g_camera.UpdateYPosition(g_camera.position_.y - (2 * g_camera.position_.y));
+        g_camera.InvertPitch();
+        // define reflection clip plane and set uniform
+        mvp_shader.use();
+        glm::vec4 refl_clip_plane = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
+        mvp_shader.setVec4("clip_plane", refl_clip_plane);
+        // bind reflection framebuffer and render 
+        water_fbos.BindReflectionFrameBuffer();
+        glClearColor(0.0f, 0.0f, 0.6f, 0.5f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         RenderScene(models, mvp_shader);
-
+        // unbind reflection framebuffer and restore camera settings 
         water_fbos.UnbindCurrentFrameBuffer();
-        // restore camera settings 
         g_camera.InvertPitch();
         g_camera.UpdatePosition(current_camera_pos);
 
-        // render scene to refraction buffer 
+        //// RENDER SCENE TO REFRACTION BUFFER ////
         // define refraction clip plane and set uniform
+        mvp_shader.use();
         glm::vec4 refr_clip_plane = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
         mvp_shader.setVec4("clip_plane", refr_clip_plane);
+        // bind refraction framebuffer and render 
         water_fbos.BindRefractionFrameBuffer();
+        glClearColor(0.0f, 0.0f, 0.6f, 0.5f); 
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         RenderScene(models, mvp_shader);
+        // unbind refraction framebuffer 
         water_fbos.UnbindCurrentFrameBuffer();
-        
-        // render scene to default frame buffer
-        mvp_shader.setVec4("clip_plane", refl_clip_plane);
 
+        // disable clipping 
         glDisable(GL_CLIP_DISTANCE0);
 
+        // render the scene
+        glClearColor(0.2f, 0.0f, 0.2f, 1.0f); 
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         RenderScene(models, mvp_shader);
         
         // render water 
         RenderWater(water_shader, VAO_W, water_fbos.GetReflectionTexture(), water_fbos.GetRefractionTexture());
 
-        // render scene to water gui - DEBUG 
+        // DEBUG - water texture guis and axes 
         RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
         RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetRefractionTexture(), 6);
+        RenderDebugAxes(axes_shader, VAO_AX);
 
         // swap frame and output buffers
         glfwSwapBuffers(g_window);
@@ -290,6 +338,7 @@ int main()
 
     // FREE WATER RESOURCES
     water_fbos.CleanUp();
+
 
     // free glfw resources 
     glfwTerminate();
@@ -316,12 +365,6 @@ void RenderScene(const std::vector<Model> models, Shader shader) {
     glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
     shader.setMat4("projection", projection);
 
-    // clear the color and depth buffers 
-    // glClearColor(0.2f, 0.0f, 0.2f, 1.0f); // OG DEBUG PURP
-    glClearColor(0.0f, 0.0f, 0.6f, 0.5f);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // draw models 
     for (const Model& model : models) {
         // --- set model and normal uniforms --- // 
@@ -338,35 +381,55 @@ void RenderScene(const std::vector<Model> models, Shader shader) {
 void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsigned int refr_tex_id) {
     // activate water shader 
     shader.use();
-    // set matrix uniforms for water shader 
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::scale(model, glm::vec3(20.0f));
-    shader.setMat4("model", model);
+    // set dynamic matrix uniforms 
     glm::mat4 view = g_camera.GetViewMatrix();
     shader.setMat4("view", view);
     glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
     shader.setMat4("projection", projection);
-
-    glActiveTexture(0);
+    // bind reflection texture 
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, refl_tex_id);
     shader.setInt("reflection_texture", 0);
-    
-    glActiveTexture(1);
+    // bind refraction texture 
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, refr_tex_id);
-    shader.setInt("reflection_texture", 1);
-
-    // bind water VAO and draw 
+    shader.setInt("refraction_texture", 1);
+    // bind water plane and draw 
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+    // unbind 
     glBindVertexArray(0);
 }
 
 void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id, unsigned int index_offset) {
     glDisable(GL_DEPTH_TEST);
     shader.use();
-    glActiveTexture(0);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture_id);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(index_offset * sizeof(GLuint)));
     glEnable(GL_DEPTH_TEST);
+}
+
+void RenderDebugAxes(Shader shader, unsigned int VAO) {
+    // bind axes shader program
+    shader.use();
+    // update dynamic matrix uniforms 
+    glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
+    shader.setMat4("projection", projection);
+    glm::mat4 view = g_camera.GetViewMatrix();
+    shader.setMat4("view", view);
+    
+    // x axis
+    shader.setVec3("axisColor", 1.0f, 0.0f, 0.0f);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINES, 0, 2);
+    // y axis 
+    shader.setVec3("axisColor", 0.0f, 1.0f, 0.0f);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINES, 2, 2);
+    // z axis 
+    shader.setVec3("axisColor", 0.0f, 0.0f, 1.0f);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_LINES, 4, 2);
 }

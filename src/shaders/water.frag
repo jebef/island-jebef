@@ -7,9 +7,5 @@ uniform sampler2D reflection_texture;
 uniform sampler2D refraction_texture;
 
 void main() {
-    vec4 refl_color = texture(reflection_texture, wTexCoords);
-    vec4 refr_color = texture(refraction_texture, wTexCoords);
-    //FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);
-    FragColor = mix(refl_color, refr_color, 0.5);
-    //FragColor = refl_color;
+    FragColor = mix(texture(reflection_texture, wTexCoords), texture(refraction_texture, wTexCoords), 0.5f);
 }
