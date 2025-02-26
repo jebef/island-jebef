@@ -25,6 +25,9 @@ extern bool g_first_mouse;
 // Time // 
 extern float g_delta_time; 
 extern float g_last_frame;
+// Water // 
+extern float g_wave_speed;
+extern float g_movement_factor;
 
 // ----------- UTILITY FUNCTIONS ----------- // 
 GLFWwindow* CreateWindow(int version_major, int version_minor, int profile, 

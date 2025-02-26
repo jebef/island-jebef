@@ -21,6 +21,9 @@ bool g_first_mouse = true;
 // Time // 
 float g_delta_time = 0.0f; 
 float g_last_frame = 0.0f;
+// Water // 
+float g_wave_speed = 0.03f;
+float g_movement_factor = 0.0f;
 
 // ----------- UTILITY FUNCTIONS ----------- // 
 /*

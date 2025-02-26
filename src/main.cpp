@@ -24,9 +24,11 @@
     6. Render 
 */
 void RenderScene(const std::vector<Model> models, Shader shader);
-void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id,  unsigned int refr_tex_id);
+void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsigned int refr_tex_id, unsigned int dudv_map_id);
 void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id, unsigned int index_offset);
 void RenderDebugAxes(Shader shader, unsigned int VAO);
+
+unsigned int loadTexture(char const * path);
 
 int main() 
 {
@@ -177,12 +179,15 @@ int main()
     // set texture sampler uniforms 
     water_shader.setInt("reflection_texture", 0);
     water_shader.setInt("refraction_texture", 1);
+    water_shader.setInt("dudv_map", 2);
     // set model matrix uniform
     glm::mat4 model_water = glm::mat4(1.0f);
     model_water = glm::scale(model_water, glm::vec3(20.0f));
     water_shader.setMat4("model", model_water);
     // init water frame buffers and associated attachments
     WaterFrameBuffers(water_fbos);
+    // load dudv map 
+    unsigned int water_dudv = loadTexture("/Users/wyattjebef/Documents/dev/opengl/projects/island-jebef/src/resources/water/dudv.png");
 
     // ----------- DEBUG WATER GUI ----------- //
     float vd_gui[] = {
@@ -321,7 +326,7 @@ int main()
         RenderScene(models, mvp_shader);
         
         // render water 
-        RenderWater(water_shader, VAO_W, water_fbos.GetReflectionTexture(), water_fbos.GetRefractionTexture());
+        RenderWater(water_shader, VAO_W, water_fbos.GetReflectionTexture(), water_fbos.GetRefractionTexture(), water_dudv);
 
         // // DEBUG - water texture guis and axes 
         // RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
@@ -379,7 +384,7 @@ void RenderScene(const std::vector<Model> models, Shader shader) {
     }
 }
 
-void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsigned int refr_tex_id) {
+void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsigned int refr_tex_id, unsigned int dudv_map_id) {
     // activate water shader 
     shader.use();
     // set dynamic matrix uniforms 
@@ -395,6 +400,16 @@ void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsi
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, refr_tex_id);
     shader.setInt("refraction_texture", 1);
+    // bind dudv map texture 
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, dudv_map_id);
+    shader.setInt("dudv_map", 2);
+    // update dudv sampling factor 
+    g_movement_factor += g_wave_speed * g_delta_time;
+    if (g_movement_factor >= 0.999f) {
+        g_movement_factor = 0.0f;
+    }
+    shader.setFloat("dudv_sampling_factor", g_movement_factor);
     // bind water plane and draw 
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
@@ -433,4 +448,45 @@ void RenderDebugAxes(Shader shader, unsigned int VAO) {
     shader.setVec3("axisColor", 0.0f, 0.0f, 1.0f);
     glBindVertexArray(VAO);
     glDrawArrays(GL_LINES, 4, 2);
+}
+
+// TODO: REWRITE TEXTURE LOADING FUNCTION 
+
+// utility function for loading a 2D texture from file
+// ---------------------------------------------------
+unsigned int loadTexture(char const * path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
 }
