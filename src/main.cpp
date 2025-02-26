@@ -143,11 +143,11 @@ int main()
 
     // ----------- WATER ----------- //
     float vd_water[] = {
-        // Positions         // Texture Coordinates
-        -1.0f, 0.0f, -1.0f,  0.0f, 1.0f, // top left
-         1.0f, 0.0f, -1.0f,  1.0f, 1.0f, // top right
-         1.0f, 0.0f,  1.0f,  1.0f, 0.0f, // bottom right
-        -1.0f, 0.0f,  1.0f,  0.0f, 0.0f, // bottom left
+        // Positions         
+        -1.0f, 0.0f, -1.0f, // top left
+         1.0f, 0.0f, -1.0f, // top right
+         1.0f, 0.0f,  1.0f, // bottom right
+        -1.0f, 0.0f,  1.0f  // bottom left
     };
     unsigned int i_water[] = {
         0, 1, 2, 
@@ -167,14 +167,12 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_W);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(i_water), i_water, GL_STATIC_DRAW);
     // configure vertex array ttribute pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
     // unbind 
     glBindVertexArray(0);
     // create water shader program
-    Shader water_shader = Shader("src/shaders/mvp-debug.vert", "src/shaders/water.frag");
+    Shader water_shader = Shader("src/shaders/water.vert", "src/shaders/water.frag");
     water_shader.use();
     // set texture sampler uniforms 
     water_shader.setInt("reflection_texture", 0);
@@ -186,8 +184,8 @@ int main()
     // init water frame buffers and associated attachments
     WaterFrameBuffers(water_fbos);
 
-    //// WATER GUI 
-    float gui_vertex_data[] = {
+    // ----------- DEBUG WATER GUI ----------- //
+    float vd_gui[] = {
         // reflection gui
         -1.0f, 1.0f, 0.0f,  0.0f, 1.0f, // top left
         -0.5f, 1.0f, 0.0f,  1.0f, 1.0f, // top right
@@ -199,7 +197,7 @@ int main()
          1.0f, -1.0f, 0.0f,  1.0f, 0.0f, // bottom right
          0.5f, -1.0f, 0.0f,  0.0f, 0.0f // bottom left
     };
-    unsigned int gui_indices[] = {
+    unsigned int i_gui[] = {
         // reflection gui 
         0, 1, 2, // first triangle
         0, 2, 3, // second triangle
@@ -215,7 +213,7 @@ int main()
     glBindVertexArray(VAO_WGUI);
     // configure vertex buffer
     glBindBuffer(GL_ARRAY_BUFFER, VBO_WGUI);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(gui_vertex_data), gui_vertex_data, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vd_gui), vd_gui, GL_STATIC_DRAW);
     // configure vertex array
     // position
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -225,7 +223,7 @@ int main()
     glEnableVertexAttribArray(1);
     // configure element buffer
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO_WGUI);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gui_indices), gui_indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(i_gui), i_gui, GL_STATIC_DRAW);
     // unbind VAO_WGUI
     glBindVertexArray(0);
     // create gui shader program 
@@ -325,21 +323,24 @@ int main()
         // render water 
         RenderWater(water_shader, VAO_W, water_fbos.GetReflectionTexture(), water_fbos.GetRefractionTexture());
 
-        // DEBUG - water texture guis and axes 
-        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
-        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetRefractionTexture(), 6);
-        RenderDebugAxes(axes_shader, VAO_AX);
+        // // DEBUG - water texture guis and axes 
+        // RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
+        // RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetRefractionTexture(), 6);
+        // RenderDebugAxes(axes_shader, VAO_AX);
 
         // swap frame and output buffers
         glfwSwapBuffers(g_window);
         // check for I/O events 
         glfwPollEvents();
     }
-
-    // FREE WATER RESOURCES
+    // ----------- FREE RESOURCES ----------- //
+    glDeleteVertexArrays(1, &VAO_W);
+    glDeleteVertexArrays(1, &VAO_WGUI);
+    glDeleteVertexArrays(1, &VAO_AX);
+    glDeleteBuffers(1, &VBO_W);
+    glDeleteBuffers(1, &VBO_WGUI);
+    glDeleteBuffers(1, &VBO_AX);
     water_fbos.CleanUp();
-
-
     // free glfw resources 
     glfwTerminate();
     return 0; 
