@@ -286,12 +286,18 @@ int main()
         glEnable(GL_CLIP_DISTANCE0);
 
         //// RENDER SCENE TO REFLECTION BUFFER ////
-        // update camera position to capture reflection angles
-        glm::vec3 current_camera_pos = g_camera.position_;
-        g_camera.UpdateYPosition(g_camera.position_.y - (2 * g_camera.position_.y));
-        g_camera.InvertPitch();
-        // define reflection clip plane and set uniform
+        // activate main scene shader 
         mvp_shader.use();
+        // calculate reflection camera position 
+        glm::vec3 reflected_position = glm::vec3(g_camera.position_.x, -g_camera.position_.y, g_camera.position_.z);
+        mvp_shader.setVec3("camera_pos", reflected_position);
+        // calculate reflected camera target/front 
+        glm::vec3 reflected_target = glm::vec3(g_camera.position_ + g_camera.front_);
+        reflected_target.y = -reflected_target.y;
+        // calculate reflected view matrix
+        glm::mat4 reflection_view = glm::lookAt(reflected_position, reflected_target, glm::vec3(0.0f, 1.0f, 0.0f));
+        mvp_shader.setMat4("view", reflection_view);
+        // define reflection clip plane and set uniform
         glm::vec4 refl_clip_plane = glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
         mvp_shader.setVec4("clip_plane", refl_clip_plane);
         // bind reflection framebuffer and render 
@@ -301,12 +307,12 @@ int main()
         RenderScene(models, mvp_shader);
         // unbind reflection framebuffer and restore camera settings 
         water_fbos.UnbindCurrentFrameBuffer();
-        g_camera.InvertPitch();
-        g_camera.UpdatePosition(current_camera_pos);
 
         //// RENDER SCENE TO REFRACTION BUFFER ////
         // define refraction clip plane and set uniform
         mvp_shader.use();
+        mvp_shader.setVec3("camera_pos", g_camera.position_);
+        mvp_shader.setMat4("view", g_camera.GetViewMatrix());
         glm::vec4 refr_clip_plane = glm::vec4(0.0f, -1.0f, 0.0f, 0.0f);
         mvp_shader.setVec4("clip_plane", refr_clip_plane);
         // bind refraction framebuffer and render 
@@ -323,6 +329,9 @@ int main()
         // render the scene
         glClearColor(0.2f, 0.0f, 0.2f, 1.0f); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        mvp_shader.use();
+        mvp_shader.setVec3("camera_pos", g_camera.position_);
+        mvp_shader.setMat4("view", g_camera.GetViewMatrix());
         RenderScene(models, mvp_shader);
         
         // render water 
@@ -357,13 +366,13 @@ int main()
 void RenderScene(const std::vector<Model> models, Shader shader) {
     shader.use();
 
-    // update camera/view uniform
-    shader.setVec3("camera_pos", g_camera.position_);
+    // // update camera/view uniform
+    // shader.setVec3("camera_pos", g_camera.position_);
 
-    // --- update global uniforms --- //
-    // view matrix (world -> camera/view)
-    glm::mat4 view = g_camera.GetViewMatrix();
-    shader.setMat4("view", view);
+    // // --- update global uniforms --- //
+    // // view matrix (world -> camera/view)
+    // glm::mat4 view = g_camera.GetViewMatrix();
+    // shader.setMat4("view", view);
 
     // projection matrix (camera/view -> clip)
     // glm::perspective(fov, aspect_ratio, z_near, z_far)
