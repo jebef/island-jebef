@@ -75,7 +75,7 @@ int main()
     Model palm_tree("src/resources/models/palm_tree/palm-tree.obj");
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::scale(model, glm::vec3(0.25f, 0.25f, 0.25f));
-    model = glm::translate(model, glm::vec3(-1.0f,0.0f,0.0f));
+    model = glm::translate(model, glm::vec3(-4.0f, 2.6f, 2.0f));
     palm_tree.SetModelMatrix(model);
 
     Model island("src/resources/models/island/island.obj");
@@ -173,6 +173,27 @@ int main()
     glEnableVertexAttribArray(0);
     // unbind 
     glBindVertexArray(0);
+    // create reflection shader program
+    Shader island_cap_shader = Shader("src/shaders/island-cap.vert", "src/shaders/island-cap.frag", "src/shaders/island-cap.geom");
+    island_cap_shader.use();
+    // other material properties set by model loader 
+    island_cap_shader.setFloat("material.shininess", 16.0f);
+    // set directional light props
+    island_cap_shader.setVec3("directional_light.direction", dl_direction);
+    island_cap_shader.setVec3("directional_light.ambient", dl_ambient);
+    island_cap_shader.setVec3("directional_light.diffuse", dl_diffuse);
+    island_cap_shader.setVec3("directional_light.specular", dl_specular);
+
+    Shader island_cap_reflect_shader = Shader("src/shaders/island-cap.vert", "src/shaders/island-cap.frag", "src/shaders/island-cap-reflect.geom");
+    island_cap_reflect_shader.use();
+    // other material properties set by model loader 
+    island_cap_shader.setFloat("material.shininess", 16.0f);
+    // set directional light props
+    island_cap_reflect_shader.setVec3("directional_light.direction", dl_direction);
+    island_cap_reflect_shader.setVec3("directional_light.ambient", dl_ambient);
+    island_cap_reflect_shader.setVec3("directional_light.diffuse", dl_diffuse);
+    island_cap_reflect_shader.setVec3("directional_light.specular", dl_specular);
+
     // create water shader program
     Shader water_shader = Shader("src/shaders/water.vert", "src/shaders/water.frag");
     water_shader.use();
@@ -275,9 +296,9 @@ int main()
     // ----------- MAIN RENDER LOOP ----------- //
     while (!glfwWindowShouldClose(g_window)) {
         // per-frame time logic
-        float current_frame = static_cast<float>(glfwGetTime());
-        g_delta_time = current_frame - g_last_frame;
-        g_last_frame = current_frame;
+        g_current_frame = static_cast<float>(glfwGetTime());
+        g_delta_time = g_current_frame - g_last_frame;
+        g_last_frame = g_current_frame;
 
         // handle user input 
         ProcessInput(g_window);
@@ -305,6 +326,13 @@ int main()
         glClearColor(0.0f, 0.0f, 0.6f, 0.5f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         RenderScene(models, mvp_shader);
+
+        // render island cap
+        island_cap_reflect_shader.use();
+        island_cap_reflect_shader.setMat4("view", reflection_view);
+        island_cap_reflect_shader.setVec4("clip_plane", refl_clip_plane);
+        RenderScene({island}, island_cap_reflect_shader);
+
         // unbind reflection framebuffer and restore camera settings 
         water_fbos.UnbindCurrentFrameBuffer();
 
@@ -319,7 +347,14 @@ int main()
         water_fbos.BindRefractionFrameBuffer();
         glClearColor(0.0f, 0.0f, 0.6f, 0.5f); 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        RenderScene(models, mvp_shader);
+        //RenderScene(models, mvp_shader);
+
+        // render island cap
+        island_cap_shader.use();
+        island_cap_shader.setMat4("view", g_camera.GetViewMatrix());
+        island_cap_shader.setVec4("clip_plane", refr_clip_plane);
+        RenderScene({island}, island_cap_shader);
+
         // unbind refraction framebuffer 
         water_fbos.UnbindCurrentFrameBuffer();
 
@@ -337,9 +372,9 @@ int main()
         // render water 
         RenderWater(water_shader, VAO_W, water_fbos.GetReflectionTexture(), water_fbos.GetRefractionTexture(), water_dudv);
 
-        // // DEBUG - water texture guis and axes 
-        // RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
-        // RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetRefractionTexture(), 6);
+        // DEBUG - water texture guis and axes 
+        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetReflectionTexture(), 0);
+        RenderWaterGui(gui_shader, VAO_WGUI, water_fbos.GetRefractionTexture(), 6);
         // RenderDebugAxes(axes_shader, VAO_AX);
 
         // swap frame and output buffers
@@ -397,6 +432,7 @@ void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsi
     // activate water shader 
     shader.use();
     // set dynamic matrix uniforms 
+    shader.setVec3("camera_pos", g_camera.position_);
     glm::mat4 view = g_camera.GetViewMatrix();
     shader.setMat4("view", view);
     glm::mat4 projection = glm::perspective(glm::radians(g_camera.zoom_), (float)g_screen_width / (float)g_screen_height, 0.1f, 100.0f);
@@ -414,11 +450,8 @@ void RenderWater(Shader shader, unsigned int VAO, unsigned int refl_tex_id, unsi
     glBindTexture(GL_TEXTURE_2D, dudv_map_id);
     shader.setInt("dudv_map", 2);
     // update dudv sampling factor 
-    g_movement_factor += g_wave_speed * g_delta_time;
-    if (g_movement_factor >= 0.999f) {
-        g_movement_factor = 0.0f;
-    }
-    shader.setFloat("dudv_sampling_factor", g_movement_factor);
+    g_movement_factor = fmod(g_current_frame * g_wave_speed, 1.0f);
+    shader.setFloat("dudv_sampling_offset", g_movement_factor);
     // bind water plane and draw 
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);

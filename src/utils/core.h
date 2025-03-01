@@ -23,6 +23,7 @@ extern float g_last_x;
 extern float g_last_y;
 extern bool g_first_mouse;
 // Time // 
+extern float g_current_frame;
 extern float g_delta_time; 
 extern float g_last_frame;
 // Water // 

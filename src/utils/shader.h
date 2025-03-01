@@ -10,7 +10,7 @@ class Shader
 {
 public:
     unsigned int ID;
-    Shader(const char* vert_path, const char* frag_path);
+    Shader(const char* vert_path, const char* frag_path, const char* geom_path = nullptr);
 
     // activate the shader 
     void use() const;

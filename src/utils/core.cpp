@@ -19,10 +19,11 @@ float g_last_x = g_screen_width / 2.0f;
 float g_last_y = g_screen_height / 2.0f;
 bool g_first_mouse = true;
 // Time // 
+float g_current_frame = 0.0f;
 float g_delta_time = 0.0f; 
 float g_last_frame = 0.0f;
 // Water // 
-float g_wave_speed = 0.03f;
+float g_wave_speed = 0.05f;
 float g_movement_factor = 0.0f;
 
 // ----------- UTILITY FUNCTIONS ----------- // 
