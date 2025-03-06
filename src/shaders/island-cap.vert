@@ -7,23 +7,26 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat3 normal;
-
 uniform vec4 clip_plane;
 
 out VS_OUT {
-    vec3 world_pos;
-    vec3 normal;
-    vec2 texture_coords;
+    vec3 wPos;
+    vec3 wNorm;
+    vec2 TexCoords;
 } vs_out;
 
 void main() {
-    vec4 world_pos = model * vec4(aPos, 1.0f);
+    // transform position to world space
+    vec4 wPos = model * vec4(aPos, 1.0f);
 
-    vs_out.world_pos = vec3(world_pos);
-    vs_out.normal = normalize(normal * aNorm);
-    vs_out.texture_coords = aTexCoords;
+    // set geometry shader inputs 
+    vs_out.wPos = vec3(wPos);
+    vs_out.wNorm = normalize(normal * aNorm);
+    vs_out.TexCoords = aTexCoords;
 
-    gl_ClipDistance[0] = dot(world_pos, clip_plane);
+    // compute clip distance 
+    gl_ClipDistance[0] = dot(wPos, clip_plane);
     
-    gl_Position = projection * view * world_pos;
+    // transform position to clip space 
+    gl_Position = projection * view * wPos;
 }

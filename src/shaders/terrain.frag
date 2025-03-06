@@ -52,7 +52,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 camera_dir);
 // IN VARS FROM VERTEX SHADER
 in vec3 wPos;
 in vec3 wNorm;
-in vec2 wTexCoords;
+in vec2 TexCoords;
 
 // UNIFORMS 
 uniform vec3 camera_pos;
@@ -60,14 +60,15 @@ uniform Material material;
 uniform DirLight directional_light;
 uniform PointLight point_light[NR_POINT_LIGHTS];
 uniform SpotLight spot_light[NR_SPOT_LIGHTS];
-uniform bool dir_only;
+uniform bool directional_only;
+uniform float specular_intenstiy;
 
 void main() {
     // get camera/view direction 
     vec3 camera_dir = normalize(camera_pos - wPos);
     // directional light 
     vec3 result = CalcDirLight(directional_light, camera_dir);
-    if (!dir_only) {
+    if (!directional_only) {
         // point lights 
         for (int i = 0; i < NR_POINT_LIGHTS; i++) {
             result += CalcPointLight(point_light[i], camera_dir);
@@ -87,9 +88,9 @@ vec3 CalcDirLight(DirLight light, vec3 camera_dir) {
     vec3 refl_dir = reflect(-light_dir, wNorm);
     float spec_imp = pow(max(dot(camera_dir, refl_dir), 0.0f), material.shininess);
     // scale components
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, wTexCoords));
-    vec3 diffuse = light.diffuse * diff_imp * vec3(texture(material.diffuse, wTexCoords));
-    vec3 specular = light.specular * spec_imp * vec3(texture(material.specular, wTexCoords));
+    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
+    vec3 diffuse = light.diffuse * diff_imp * vec3(texture(material.diffuse, TexCoords));
+    vec3 specular = light.specular * spec_imp * vec3(texture(material.specular, TexCoords)) * specular_intenstiy;
     // combine results
     return (ambient + diffuse + specular);
 }
@@ -106,9 +107,9 @@ vec3 CalcPointLight(PointLight light, vec3 camera_dir) {
     float dist = length(light.position - wPos);
     float attenuation = 1.0f / (light.constant + light.linear * dist + light.quadratic * (dist * dist));
     // scale components
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, wTexCoords));
-    vec3 diffuse = light.diffuse * diff_imp * vec3(texture(material.diffuse, wTexCoords));
-    vec3 specular = light.specular * spec_imp * vec3(texture(material.specular, wTexCoords));
+    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
+    vec3 diffuse = light.diffuse * diff_imp * vec3(texture(material.diffuse, TexCoords));
+    vec3 specular = light.specular * spec_imp * vec3(texture(material.specular, TexCoords)) * specular_intenstiy;
     // attenuate components
     ambient *= attenuation;
     diffuse *= attenuation;
@@ -133,9 +134,9 @@ vec3 CalcSpotLight(SpotLight light, vec3 camera_dir) {
     float epsilon = light.inner_cut_off - light.outer_cut_off;
     float spot_intensity = clamp((theta - light.outer_cut_off) / epsilon, 0.0f, 1.0f);
     // scale components
-    vec3 ambient = light.ambient * vec3(texture(material.diffuse, wTexCoords));
-    vec3 diffuse = light.diffuse * diff_imp * vec3(texture(material.diffuse, wTexCoords));
-    vec3 specular = light.specular * spec_imp * vec3(texture(material.specular, wTexCoords));
+    vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
+    vec3 diffuse = light.diffuse * diff_imp * vec3(texture(material.diffuse, TexCoords));
+    vec3 specular = light.specular * spec_imp * vec3(texture(material.specular, TexCoords)) * specular_intenstiy;
     // attenuate components
     ambient *= attenuation;
     diffuse *= attenuation;

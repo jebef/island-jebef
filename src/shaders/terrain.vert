@@ -12,15 +12,16 @@ uniform vec4 clip_plane;
 
 out vec3 wPos;
 out vec3 wNorm;
-out vec2 wTexCoords;
+out vec2 TexCoords;
 
 void main() {
     wPos = vec3(model * vec4(aPos, 1.0f));
-    wNorm = normalize(normal * aNorm);
-    wTexCoords = aTexCoords;
 
-    vec4 world_pos = model * vec4(aPos, 1.0f);
-    gl_ClipDistance[0] = dot(world_pos, clip_plane);
+    wNorm = normalize(normal * aNorm);
+    
+    TexCoords = aTexCoords;
+
+    gl_ClipDistance[0] = dot(vec4(wPos, 1.0f), clip_plane);
     
     gl_Position = projection * view * vec4(wPos, 1.0f);
 }

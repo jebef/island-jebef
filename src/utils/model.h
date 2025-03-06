@@ -32,6 +32,7 @@ public:
     string directory;
     bool gammaCorrection;
     glm::mat4 model_matrix;
+    float specular_intensity;
 
     // constructor, expects a filepath to a 3D model.
     Model(string const &path, bool gamma = false) : gammaCorrection(gamma)
@@ -49,6 +50,10 @@ public:
     // sets the model matrix (local -> world) associated with this model
     void SetModelMatrix(glm::mat4 model_matrix) {
         this->model_matrix = model_matrix;
+    }
+
+    void SetSpecularIntensity(float specular_intensity) {
+        this->specular_intensity = specular_intensity;
     }
     
 private:
