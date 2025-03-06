@@ -3,6 +3,7 @@
 #include <iostream>
 #include "core.h"
 #include "camera.h"
+#include "stb_image_write.h"
 
 // ----------- INIT GLOBAL VARIABLES ----------- // 
 // Screen // 
@@ -25,6 +26,8 @@ float g_last_frame = 0.0f;
 // Water // 
 float g_wave_speed = 0.05f;
 float g_movement_factor = 0.0f;
+// Out Image //
+int g_out_file_index = 0;
 
 // ----------- UTILITY FUNCTIONS ----------- // 
 /*
@@ -45,6 +48,28 @@ GLFWwindow* CreateWindow(int version_major, int version_minor, int profile, int 
     return glfwCreateWindow(width, height, title, NULL, NULL);
 }
 
+void SaveScreenshot() {
+
+    std::string filename = "img" + std::to_string(g_out_file_index++) + ".png";
+    const char* c_filename = filename.c_str();
+
+    unsigned char* pixels = new unsigned char[g_screen_width_p * g_screen_height_p * 3]; 
+
+    glReadPixels(0, 0, g_screen_width_p, g_screen_height_p, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+    unsigned char* flipped = new unsigned char[g_screen_width_p * g_screen_height_p * 3];
+    for (int y = 0; y < g_screen_height_p; y++) {
+        memcpy(flipped + (g_screen_height_p - 1 - y) * g_screen_width_p * 3, pixels + y * g_screen_width_p * 3, g_screen_width_p * 3);
+    }
+
+    stbi_write_png(c_filename, g_screen_width_p, g_screen_height_p, 3, flipped, g_screen_width_p * 3);
+
+    std::cout << "Image saved!" << std::endl;
+
+    delete[] pixels;
+    delete[] flipped;
+}
+
 /*
     Gets called every frame, handles user input.
 */
@@ -60,6 +85,8 @@ void ProcessInput(GLFWwindow* window)
         g_camera.ProcessKeyboard(LEFT, g_delta_time);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         g_camera.ProcessKeyboard(RIGHT, g_delta_time);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        SaveScreenshot();
 }
 
 //----------- CALLBACK FUNCTIONS -----------//

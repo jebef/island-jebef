@@ -15,6 +15,8 @@
 #include "utils/model.h"
 #include "utils/water_frame_buffers.h"
 
+#include "utils/stb_image.h"
+
 /*
     1. Setup window
     2. Register callback functions 

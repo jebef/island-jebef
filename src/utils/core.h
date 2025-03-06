@@ -29,10 +29,14 @@ extern float g_last_frame;
 // Water // 
 extern float g_wave_speed;
 extern float g_movement_factor;
+// Out Image //
+extern int g_out_file_index;
 
 // ----------- UTILITY FUNCTIONS ----------- // 
 GLFWwindow* CreateWindow(int version_major, int version_minor, int profile, 
     int width, int height, const char *title);
+
+void SaveScreenshot();
 
 void ProcessInput(GLFWwindow* window);
 
