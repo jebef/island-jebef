@@ -116,13 +116,12 @@ void main() {
     // calculate reflection factor - Fresnel effect 
     float refr_factor = dot(frag_to_camera, vec3(0.0f, 1.0f, 0.0f));
     // tune refraction factor
-    refr_factor = pow(refr_factor, 0.6f); 
+    refr_factor = pow(refr_factor, 1.5f); 
 
     // combine reflection and refraction textures 
     vec4 texture_result = mix(texture(reflection_texture, refl_tex_coords), texture(refraction_texture, refr_tex_coords), refr_factor);
 
     //----- SPECULAR HIGHLIGHTS -----//
-    // SET AMBIENT AND DIFFUSE VALUES TO 0
 
     // directional light 
     vec3 lighting_result = CalcDirLightSpec(directional_light, frag_to_camera, texture_result, normal);

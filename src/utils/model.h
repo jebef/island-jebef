@@ -21,6 +21,10 @@
 #include <vector>
 using namespace std;
 
+/*
+    A model loading class powered by ASIMP courtesy of LearnOpenGL.com 
+*/
+
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
 
 class Model 

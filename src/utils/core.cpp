@@ -48,24 +48,26 @@ GLFWwindow* CreateWindow(int version_major, int version_minor, int profile, int 
     return glfwCreateWindow(width, height, title, NULL, NULL);
 }
 
+/*
+    Captures a still of the scene and saves it to a png file. 
+*/
 void SaveScreenshot() {
-
+    // construct output file name 
     std::string filename = "img" + std::to_string(g_out_file_index++) + ".png";
     const char* c_filename = filename.c_str();
-
+    // init pixel data array 
     unsigned char* pixels = new unsigned char[g_screen_width_p * g_screen_height_p * 3]; 
-
+    // read in pixel values from frame buffer 
     glReadPixels(0, 0, g_screen_width_p, g_screen_height_p, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-
+    // flip vertical pixel data 
     unsigned char* flipped = new unsigned char[g_screen_width_p * g_screen_height_p * 3];
     for (int y = 0; y < g_screen_height_p; y++) {
         memcpy(flipped + (g_screen_height_p - 1 - y) * g_screen_width_p * 3, pixels + y * g_screen_width_p * 3, g_screen_width_p * 3);
     }
-
+    // write pixel values to output file 
     stbi_write_png(c_filename, g_screen_width_p, g_screen_height_p, 3, flipped, g_screen_width_p * 3);
-
     std::cout << "Image saved!" << std::endl;
-
+    // cleanup
     delete[] pixels;
     delete[] flipped;
 }
@@ -98,6 +100,9 @@ void FramebufferSizeCallback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+/*
+    Called whenever the cursor position changes. Updates camera values accordingly.
+*/
 void MouseCallback(GLFWwindow* window, double x_pos_d, double y_pos_d) {
     float x_pos = static_cast<float>(x_pos_d);
     float y_pos = static_cast<float>(y_pos_d);
@@ -117,6 +122,9 @@ void MouseCallback(GLFWwindow* window, double x_pos_d, double y_pos_d) {
     g_camera.ProcessMouseMovement(x_offset, y_offset);
 }
 
+/*
+    Called whenever the scroll wheel is moved. Updates camera zoom attribute. 
+*/
 void ScrollCallback(GLFWwindow* window, double x_offset, double y_offset) {
     g_camera.ProcessMouseScroll(static_cast<float>(y_offset));
 }

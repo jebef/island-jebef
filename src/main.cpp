@@ -33,8 +33,6 @@ void RenderWaterGui(Shader shader, unsigned int VAO, unsigned int texture_id, un
 void RenderDebugAxes(Shader shader, unsigned int VAO);
 void RenderLightOrbs(Shader shader, Model model, glm::mat4 model_mat, glm::mat4 view, glm::mat4 projection, glm::vec3 light_color);
 
-unsigned int loadTexture(char const * path);
-
 int main() 
 {
     // ----------- CONTEXT INIT AND SETUP ----------- //
@@ -202,8 +200,8 @@ int main()
     water_shader.setInt("dudv_map", 2);
     water_shader.setInt("normal_map", 3);
     // load dudv and normal textures 
-    unsigned int water_dudv = loadTexture("src/resources/textures/water/dudv.png");
-    unsigned int water_normal = loadTexture("src/resources/textures/water/normal.png");
+    unsigned int water_dudv = TextureFromFile("src/resources/textures/water/dudv.png", ".");
+    unsigned int water_normal = TextureFromFile("src/resources/textures/water/normal.png", ".");
     // init water frame buffers 
     WaterFrameBuffers(water_fbos);
     // set static model matrix uniform 
@@ -538,45 +536,4 @@ void RenderLightOrbs(Shader shader, Model model, glm::mat4 model_mat, glm::mat4 
     shader.setMat4("projection", projection);
     shader.setVec3("light_color", light_color);
     model.Draw(shader);
-}
-
-
-// TODO: REWRITE TEXTURE LOADING FUNCTION 
-// utility function for loading a 2D texture from file
-// ---------------------------------------------------
-unsigned int loadTexture(char const * path)
-{
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-
-    int width, height, nrComponents;
-    unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    }
-    else
-    {
-        std::cout << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-    }
-
-    return textureID;
 }
